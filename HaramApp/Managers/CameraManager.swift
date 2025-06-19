@@ -8,35 +8,40 @@
 import SwiftUI
 import AVFoundation
 
-class CameraManager: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate {
+class CameraManager: NSObject, AVCapturePhotoCaptureDelegate {
     let session = AVCaptureSession()
     let sessionOutput = AVCapturePhotoOutput()
     
-    @Published var capturedImage: UIImage? = nil
-    
+    var onImageCaptured: (UIImage) -> Void = { image in }
+
     override init() {
         super.init()
         setupSession()
     }
-    
+
     private func setupSession() {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
+                // 1. Get camera device
                 guard let cameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
                     print("No camera available")
                     return
                 }
                 
+                // 2. Create a input session from camera device
                 let cameraInput = try AVCaptureDeviceInput(device: cameraDevice)
                 
+                // 3. Add input to the session
                 if(self.session.canAddInput(cameraInput)) {
                     self.session.addInput(cameraInput)
                 }
                 
+                // 4. Add output to the session
                 if(self.session.canAddOutput(self.sessionOutput)) {
                     self.session.addOutput(self.sessionOutput)
                 }
 
+                // 5. Start the camera
                 self.session.startRunning()
             } catch {
                 print("Error setting up camera: \(error)")
@@ -64,7 +69,7 @@ class CameraManager: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate {
             print("Successfully captured image!")
             return
         }
-        
-        capturedImage = image
+
+        onImageCaptured(image)
     }
 }
