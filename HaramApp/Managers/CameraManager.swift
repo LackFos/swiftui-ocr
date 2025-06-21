@@ -13,8 +13,8 @@ class CameraManager: NSObject, AVCapturePhotoCaptureDelegate, AVCaptureVideoData
     let sessionOutput = AVCapturePhotoOutput()
     let videoDataOutput = AVCaptureVideoDataOutput()
     
-    var onImageCaptured: (UIImage) -> Void = { image in }
-    var onScanningIngredient: (CMSampleBuffer) -> Void = { sampleBuffer in }
+    var onImageCaptured: (UIImage) -> Void =  { _ in }
+    var onScanningIngredient: (CMSampleBuffer, AVCaptureConnection) -> Void =  { _, _ in }
     
     override init() {
         super.init()
@@ -79,11 +79,11 @@ class CameraManager: NSObject, AVCapturePhotoCaptureDelegate, AVCaptureVideoData
             print("Successfully captured image!")
             return
         }
-        
+        print(image.size)
         onImageCaptured(image)
     }
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        self.onScanningIngredient(sampleBuffer)
+        self.onScanningIngredient(sampleBuffer, connection)
     }
 }
