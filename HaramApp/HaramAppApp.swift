@@ -11,7 +11,7 @@ import SwiftUI
 struct HaramAppApp: App {
     var body: some Scene {
         WindowGroup {
-            ScanView()
+            CameraView()
         }
     }
 }

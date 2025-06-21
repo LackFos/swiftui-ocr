@@ -13,15 +13,17 @@ class CameraManager: NSObject, AVCapturePhotoCaptureDelegate {
     let sessionOutput = AVCapturePhotoOutput()
     
     var onImageCaptured: (UIImage) -> Void = { image in }
-
+    
     override init() {
         super.init()
         setupSession()
     }
-
+    
     private func setupSession() {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
+                self.session.sessionPreset = .photo
+
                 // 1. Get camera device
                 guard let cameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
                     print("No camera available")
@@ -40,7 +42,7 @@ class CameraManager: NSObject, AVCapturePhotoCaptureDelegate {
                 if(self.session.canAddOutput(self.sessionOutput)) {
                     self.session.addOutput(self.sessionOutput)
                 }
-
+                
                 // 5. Start the camera
                 self.session.startRunning()
             } catch {
@@ -69,7 +71,7 @@ class CameraManager: NSObject, AVCapturePhotoCaptureDelegate {
             print("Successfully captured image!")
             return
         }
-
+        
         onImageCaptured(image)
     }
 }
