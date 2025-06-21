@@ -8,11 +8,13 @@
 import SwiftUI
 import AVFoundation
 
-class CameraManager: NSObject, AVCapturePhotoCaptureDelegate {
+class CameraManager: NSObject, AVCapturePhotoCaptureDelegate, AVCaptureVideoDataOutputSampleBufferDelegate {
     let session = AVCaptureSession()
     let sessionOutput = AVCapturePhotoOutput()
+    let videoDataOutput = AVCaptureVideoDataOutput()
     
     var onImageCaptured: (UIImage) -> Void = { image in }
+    var onScanningIngredient: (CMSampleBuffer) -> Void = { sampleBuffer in }
     
     override init() {
         super.init()
@@ -38,12 +40,18 @@ class CameraManager: NSObject, AVCapturePhotoCaptureDelegate {
                     self.session.addInput(cameraInput)
                 }
                 
-                // 4. Add output to the session
+                // 4. Add photo output to the session
                 if(self.session.canAddOutput(self.sessionOutput)) {
                     self.session.addOutput(self.sessionOutput)
                 }
                 
-                // 5. Start the camera
+                // 5. Add video output to the session
+                if self.session.canAddOutput(self.videoDataOutput) {
+                    self.videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue.global(qos: .userInitiated))
+                    self.session.addOutput(self.videoDataOutput)
+                }
+
+                // 6. Start the camera
                 self.session.startRunning()
             } catch {
                 print("Error setting up camera: \(error)")
@@ -73,5 +81,9 @@ class CameraManager: NSObject, AVCapturePhotoCaptureDelegate {
         }
         
         onImageCaptured(image)
+    }
+    
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        self.onScanningIngredient(sampleBuffer)
     }
 }

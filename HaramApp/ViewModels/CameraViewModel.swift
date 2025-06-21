@@ -10,12 +10,15 @@ import AVFoundation
 import Vision
 
 class CameraViewModel: ObservableObject {
-    let cameraManager: CameraManager
     @Published var capturedImage: UIImage?
+    @Published var isIngredientDetected: Bool = false
     
+    let cameraManager: CameraManager
+
     init() {
         self.cameraManager = CameraManager()
         self.cameraManager.onImageCaptured = self.onImageCaptured
+        self.cameraManager.onScanningIngredient = self.onScanningIngredient
     }
     
     var cameraSession: AVCaptureSession {
@@ -24,6 +27,21 @@ class CameraViewModel: ObservableObject {
     
     func captureImage() {
         cameraManager.capture()
+    }
+    
+    func onScanningIngredient(sampleBuffer: CMSampleBuffer) {
+        let textRecognitionRequest = VNRecognizeTextRequest(completionHandler: scanIngredient)
+        textRecognitionRequest.recognitionLanguages = ["ko-KR"]
+        textRecognitionRequest.recognitionLevel = .accurate
+        textRecognitionRequest.minimumTextHeight = 0.3
+
+        let visionRequestHandler = VNImageRequestHandler(cmSampleBuffer: sampleBuffer)
+
+        do {
+            try visionRequestHandler.perform([textRecognitionRequest])
+        } catch {
+            print("OK")
+        }
     }
     
     func onImageCaptured(image: UIImage) -> Void {
@@ -36,6 +54,10 @@ class CameraViewModel: ObservableObject {
         }
         
         let textRecognitionRequest = VNRecognizeTextRequest(completionHandler: recognizeTextHandler)
+        textRecognitionRequest.recognitionLanguages = ["ko-KR"]
+        textRecognitionRequest.recognitionLevel = .accurate
+        textRecognitionRequest.minimumTextHeight = 0.3
+
         let visionRequestHandler = VNImageRequestHandler(cgImage: cgImage)
         
         do {
@@ -50,27 +72,27 @@ class CameraViewModel: ObservableObject {
             return
         }
         
-        let recognizedStrings = observations.compactMap { observation in
+        let words = observations.compactMap { observation in
+            return observation.topCandidates(1).first?.string
+        }
+    }
+    
+    func scanIngredient(request: VNRequest, error: Error?) {
+        guard let observations = request.results as? [VNRecognizedTextObservation] else {
+            return
+        }
+        
+        let words = observations.compactMap { observation in
             return observation.topCandidates(1).first?.string
         }
         
-        let boundingRects: [CGRect] = observations.compactMap { observation in
-            guard let candidate = observation.topCandidates(1).first else { return .zero }
-            
-            // Find the bounding-box observation for the string range.
-            let stringRange = candidate.string.startIndex..<candidate.string.endIndex
-            let boxObservation = try? candidate.boundingBox(for: stringRange)
-            
-            // Get the normalized CGRect value.
-            let boundingBox = boxObservation?.boundingBox ?? .zero
-            
-            // Convert the rectangle from normalized coordinates to image coordinates.
-            return VNImageRectForNormalizedRect(boundingBox,
-                                                Int(self.capturedImage!.size.width),
-                                                Int(self.capturedImage!.size.height))
+        for word in words {
+            if(word.contains("원재료")) {
+                self.isIngredientDetected = true
+                return
+            }
         }
         
-        print(boundingRects)
-        print(recognizedStrings)
+        self.isIngredientDetected = false
     }
 }

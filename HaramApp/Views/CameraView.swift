@@ -12,7 +12,7 @@ struct CameraView: View {
                     .resizable()
                     .scaledToFit()
             } else {
-                CameraViewGuide()
+                CameraViewGuide(isIngredientDetected: viewModel.isIngredientDetected)
                 CameraViewPreview(session: viewModel.cameraSession)
                 CameraViewAction(onCapture: viewModel.captureImage)
             }
